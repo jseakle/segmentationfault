@@ -340,7 +340,7 @@ class SpawnDevice(GameThing):
         
     def collect(self, direction, radiate):
         for b in game.board_list:
-            if (b is not self.board) ^ radiate:
+            if (b is not self.board) ^ radiate or b.board_over:
                 continue
 
             cell = b.freecell()
@@ -599,9 +599,14 @@ class Game(arcade.Window):
         arcade.set_background_color((148,201,61))
 
         self.directions = {arcade.key.UP: 0,
-                      arcade.key.RIGHT: 1,
-                      arcade.key.DOWN: 2,
-                      arcade.key.LEFT: 3 }
+                           arcade.key.RIGHT: 1,
+                           arcade.key.DOWN: 2,
+                           arcade.key.LEFT: 3,
+                           arcade.key.W: 0,
+                           arcade.key.D: 1,
+                           arcade.key.S: 2,
+                           arcade.key.A: 3
+        }
         self.restart = Restart()
 
     def setup(self):
