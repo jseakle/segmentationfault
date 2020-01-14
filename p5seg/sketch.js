@@ -494,7 +494,6 @@ class SpawnDevice extends GameThing {
             cell.push(new Device(strength, b.reward(strength)))
         })
         grow.play()
-        //await sleep(40)
     }
 }
         
@@ -644,7 +643,7 @@ class Board extends Sprite {
             if(score >= 100) {
                 let hundreds = Math.floor(score/100)
                 score %= 100
-                text(`${hundreds} and`, board_size + margin / 2, board_size*2-1.8*board_size)
+                text(`${hundreds} hundred and`, board_size + margin / 2, board_size*2-1.9*board_size)
             }
             text("points!", board_size+margin/2, board_size*2-margin*4)
         }
@@ -865,13 +864,13 @@ class Game {
         this.restart_confirm = false
     }
 
-    async process_input(key) {
+    async process_input(k) {
         let moved = []
         await asyncForEach(this.board_list, async (board) => {
             if(!board.board_over) {
                 board.background = color(30,80,180)
                 await sleep(speed/2)
-                if(await board.move(this.directions[keyCode])) {
+                if(await board.move(this.directions[k])) {
                     moved.push(board)
                 }
                 await sleep(speed/2)
@@ -881,7 +880,7 @@ class Game {
 
         asyncForEach(moved, async (board) => {
             if(!board.board_over) {
-                if(await board.collect(this.directions[keyCode])) {
+                if(await board.collect(this.directions[k])) {
                     await sleep(speed/2)
                     board.background = bgcolor
                 }
