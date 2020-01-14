@@ -804,7 +804,7 @@ class Game {
         this.input_lock = false
         this.restart_confirm = false
 
-        let level = 4
+        let level = 1
         this.board_list = []
         this.board_list.push(new Board(this, margin, margin, 180, level))
         this.board_list.push(new Board(this, board_size+2*margin, margin, 270, level))
