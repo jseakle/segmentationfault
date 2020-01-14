@@ -195,14 +195,14 @@ class Device extends Multipart {
                 this.board.player.segments[direction] = new DeadSegment(direction)
                 receiving_segment.durability -= 1
                 shatter.play()
-                await sleep(100)
+                //await sleep(100)
                 let shattered = true
             } else {
                 if(receiving_segment.color == bonking_segment.temp_color.color) {
                     bonking_segment.temp_color = new NoneTempColor()
                 }
                 uhuh.play()
-                await sleep(40)
+                //await sleep(40)
                 return
             }
         } else {
@@ -228,7 +228,7 @@ class Device extends Multipart {
             this.board.player.radiate = new Radiate()
             if(!shattered) {
                 destroy.play()
-                await sleep(50)
+                //await sleep(50)
             }
         } else {
             choice(bonks).play()
@@ -319,7 +319,7 @@ class Exit extends GameThing {
         let new_board = new Board(game, this.board.x, this.board.y, this.angle, this.board.level + 1, this.board.player)
         game.board_list.splice(idx, 1, new_board)
         exitsound.play()
-        await sleep(100)
+        //await sleep(100)
 
         return true
     }
@@ -459,7 +459,7 @@ class Rotate extends GameThing {
         })
 
         this.direction == 1 ? left.play() : right.play()
-        await sleep(50)
+        //await sleep(50)
     }
 }
 
@@ -494,7 +494,7 @@ class SpawnDevice extends GameThing {
             cell.push(new Device(strength, b.reward(strength)))
         })
         grow.play()
-        await sleep(40)
+        //await sleep(40)
     }
 }
         
@@ -729,13 +729,14 @@ class Board extends Sprite {
                     return
                 } else if(obj instanceof Goop) {
                     obj.stick(direction)
+                } else {
+                    step.play()
                 }
             }
         }
 
         if((this.player.segments[direction] instanceof DeadSegment) && to_cell.length) {
             chomp.play()
-            await sleep(80)
             if(to_cell[0] instanceof Device) {
                 to_cell.splice(0, 99, to_cell[0].reward)
             } else {
@@ -755,11 +756,14 @@ class Board extends Sprite {
         return true
     }
 
-    collect(direction) {
+    async collect(direction) {
         let stuff = this.playercell().filter((x) => x !== this.player)
         if(!stuff.length) {
             return null
         }
+        
+        this.background = color(180,30,80)
+        await sleep(speed * .7)
         stuff.forEach((obj) => {
             let keep_radiate = obj.step_on(direction, !!this.player.radiate)
 
@@ -855,7 +859,7 @@ class Game {
                 return
             }
         } else if(parseInt(key)) {
-            speed = parseInt(key) * parseInt(key) * 50 
+            speed = parseInt(key) * parseInt(key)/2 * 60 
         }
             
         this.restart_confirm = false
@@ -877,9 +881,8 @@ class Game {
 
         asyncForEach(moved, async (board) => {
             if(!board.board_over) {
-                if(board.collect(this.directions[keyCode])) {
-                    board.background = color(180,30,80)
-                    await sleep(speed)
+                if(await board.collect(this.directions[keyCode])) {
+                    await sleep(speed/2)
                     board.background = bgcolor
                 }
             }
