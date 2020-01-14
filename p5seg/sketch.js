@@ -1,5 +1,3 @@
-//TODO: consider loading images once and reusing them
-
 var game;
 var margin;
 var board_size;
@@ -61,6 +59,9 @@ class Sprite {
     }
 
     draw() {
+        if(this.image === undefined) {
+            return 'weird'
+        }
         push()
         if(this.center_x === undefined) {
             console.log(1)
@@ -255,7 +256,7 @@ class Segment extends Sprite {
     draw() {
         super.draw()
         fill('black')
-        textSize(14) //TODO check
+        textSize(14)
         text(`${this.durability}`, this.center_x + (this.player?20:18) * xmods[this.direction],
              this.center_y + (this.player?20:18) * ymods[this.direction])
 
@@ -273,6 +274,7 @@ class DeadSegment extends GameThing {
         this.direction = direction
         this.durability = 0
         this.angle = -90 * direction
+        this.temp_color = new NoneTempColor()
     }
 
     set_temp_color(color) {}
@@ -314,9 +316,8 @@ class Exit extends GameThing {
 
     async collect(direction, radiate) {
         let idx = game.board_list.indexOf(this.board)
-        game.board_list.splice(idx, 1)
         let new_board = new Board(game, this.board.x, this.board.y, this.angle, this.board.level + 1, this.board.player)
-        game.board_list.push(new_board)
+        game.board_list.splice(idx, 1, new_board)
         exitsound.play()
         await sleep(100)
 
@@ -392,10 +393,15 @@ class Flip extends GameThing {
                 [b.player.segments[0], b.player.segments[2]] = [b.player.segments[2], b.player.segments[0]];
                 [b.player.segments[0].angle, b.player.segments[2].angle] = [b.player.segments[2].angle, b.player.segments[0].angle];
                 [b.player.segments[0].direction, b.player.segments[2].direction] = [b.player.segments[2].direction, b.player.segments[0].direction];
+                b.player.segments[0].temp_color.angle = b.player.segments[0].angle
+                b.player.segments[2].temp_color.angle = b.player.segments[2].angle
             } else {
                 [b.player.segments[1], b.player.segments[3]] = [b.player.segments[3], b.player.segments[1]];
                 [b.player.segments[1].angle, b.player.segments[3].angle] = [b.player.segments[3].angle, b.player.segments[1].angle];
                 [b.player.segments[1].direction, b.player.segments[3].direction] = [b.player.segments[3].direction, b.player.segments[1].direction];
+                b.player.segments[1].temp_color.angle = b.player.segments[1].angle
+                b.player.segments[3].temp_color.angle = b.player.segments[3].angle
+
             }
 
             flip.play()
@@ -534,6 +540,7 @@ class Board extends Sprite {
         this.size = 5;
         this.cell_size = board_size / this.size;
         [this.x, this.y, this.angle, this.level, this.player] = [x, y, angle, level, player]
+        this.background = bgcolor
         this.displayed_score = 0
         this.has_exit = true
         this.set_position(this.x + board_size / 2, this.y + board_size / 2)
@@ -657,10 +664,17 @@ class Board extends Sprite {
     }
 
     draw() {
+        push()
+        fill(this.background)
+        noStroke()
+        square(this.x - margin, this.y - margin, board_size+margin*2)
+        pop()
         super.draw()
         if(this.board_over) {
             this.display_score()
-            this.digit.draw()
+            if(this.digit.draw() == 'weird') {
+                this.displayed_score = -1
+            }
             this.player.draw()
             return
         }
@@ -743,6 +757,9 @@ class Board extends Sprite {
 
     collect(direction) {
         let stuff = this.playercell().filter((x) => x !== this.player)
+        if(!stuff.length) {
+            return null
+        }
         stuff.forEach((obj) => {
             let keep_radiate = obj.step_on(direction, !!this.player.radiate)
 
@@ -756,6 +773,7 @@ class Board extends Sprite {
         })
 
         this.playercell().splice(0, 99, ...this.playercell().filter((x) => !x.cleanup()))
+        return true
     }
 }
 
@@ -786,7 +804,7 @@ class Game {
         this.input_lock = false
         this.restart_confirm = false
 
-        let level = 1
+        let level = 4
         this.board_list = []
         this.board_list.push(new Board(this, margin, margin, 180, level))
         this.board_list.push(new Board(this, board_size+2*margin, margin, 270, level))
@@ -804,9 +822,20 @@ class Game {
     }
 
     draw() {
+        fill(148,201,61)
+        square(0,0,board_size*2 + margin * 3)
         this.board_list.forEach((board) => {
-            board.draw()
+            if(board.background === bgcolor) {
+                board.draw()
+            }
         })
+        this.board_list.forEach((board) => {
+            if(board.background !== bgcolor) {
+                board.draw()
+            }
+        })
+
+
 
         if(this.restart_confirm) {
             this.restart.draw()
@@ -817,15 +846,18 @@ class Game {
         if(k in this.directions && !this.input_lock) {
             this.input_lock = true
             await this.process_input(k)
-        } else if(k == 82) {
+        } else if(k == 82) { //R
             if(this.restart_confirm) {
-                this.setup()
+                game = new Game()
+                game.setup()
             } else {
                 this.restart_confirm = true
                 return
             }
+        } else if(parseInt(key)) {
+            speed = parseInt(key) * parseInt(key) * 50 
         }
-
+            
         this.restart_confirm = false
     }
 
@@ -833,17 +865,23 @@ class Game {
         let moved = []
         await asyncForEach(this.board_list, async (board) => {
             if(!board.board_over) {
+                board.background = color(30,80,180)
+                await sleep(speed/2)
                 if(await board.move(this.directions[keyCode])) {
                     moved.push(board)
                 }
-                await sleep(240)
+                await sleep(speed/2)
+                board.background = bgcolor
             }
         })
 
-        moved.forEach(async (board) => {
+        asyncForEach(moved, async (board) => {
             if(!board.board_over) {
-                board.collect(this.directions[keyCode])
-                await sleep(240)
+                if(board.collect(this.directions[keyCode])) {
+                    board.background = color(180,30,80)
+                    await sleep(speed)
+                    board.background = bgcolor
+                }
             }
         })
 
@@ -938,9 +976,12 @@ function preload() {
 function setup() {
     margin = 5
     board_size = 362
+    speed = 800
 
     xmods = {0: 0, 1: 1, 2: 0, 3: -1}
     ymods = {0: -1, 1: 0, 2: 1, 3: 0}
+
+    bgcolor = color(148,201,61)
 
     actives = { 1: repeat([AddTempColor,
                            RotateRight,
@@ -963,7 +1004,6 @@ function setup() {
     let width = board_size * 2 + margin * 3
     let height = width
     createCanvas(width, height)
-    background(148,201,61)
 }
 
 async function draw() {
