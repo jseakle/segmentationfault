@@ -168,6 +168,7 @@ class Player extends Multipart {
         super.draw()
         if(this.radiate) {
             this.radiate.set_position(this.center_x, this.center_y)
+            this.radiate.scale = .79
             this.radiate.draw()
         }
     }
