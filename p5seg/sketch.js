@@ -711,7 +711,7 @@ class Board extends Sprite {
 
         // check move-from restrictions first, so you can't bonk while stuck
         if(this.playercell().some((obj) => {
-            if(!obj.can_move(direction)) {
+            if(typeof(obj.can_move) === 'function' && !obj.can_move(direction)) {
                 return true
             }
         })) { return false }
